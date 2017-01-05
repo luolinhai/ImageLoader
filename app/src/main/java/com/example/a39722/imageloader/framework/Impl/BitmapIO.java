@@ -35,14 +35,18 @@ public class BitmapIO implements NetIO,FileIO {
     public InputStream readNetwork(String path) {
         URL url;
         InputStream inputStream = null;
+        HttpURLConnection conn = null;
         try {
             url = new URL(path);
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn = (HttpURLConnection) url.openConnection();
             inputStream = conn.getInputStream();
         } catch (MalformedURLException e) {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
+        }finally {
+            if(conn!=null)
+                conn.disconnect();
         }
         return inputStream;
     }
@@ -54,6 +58,7 @@ public class BitmapIO implements NetIO,FileIO {
 
     @Override
     public InputStream readFile(String fileName) throws IOException {
+        System.out.println(externalStoragePath + fileName);
         return new FileInputStream(externalStoragePath + fileName);
     }
 

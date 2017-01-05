@@ -26,6 +26,14 @@ public class CacheInDisk implements DiskCache {
             bitmap.compress(Bitmap.CompressFormat.PNG, 100, out);
         } catch (IOException e) {
             e.printStackTrace();
+        }finally{
+            if(out!=null){
+                try {
+                    out.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
         }
     }
 }

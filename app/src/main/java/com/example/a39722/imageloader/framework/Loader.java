@@ -1,9 +1,6 @@
 package com.example.a39722.imageloader.framework;
 
-import android.graphics.Bitmap;
-
 import java.io.IOException;
-import java.io.InputStream;
 
 /**
  * Created by 39722 on 2017/1/3.
