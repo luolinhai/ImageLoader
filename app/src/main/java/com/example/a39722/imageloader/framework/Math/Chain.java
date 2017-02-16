@@ -5,8 +5,8 @@ package com.example.a39722.imageloader.framework.Math;
  */
 public interface Chain<T> {
     public void rebuild();
-    public void addNode(String key, Object value, int size);
+    public void addNode(String key, Object value, long size);
     public void removeNode();
-    public T findCache(String key);
-    public void trim(int newSize);
+    public T findCache(String key) throws CloneNotSupportedException;
+    public void trim(long newSize);
 }

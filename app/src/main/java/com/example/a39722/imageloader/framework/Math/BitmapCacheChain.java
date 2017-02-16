@@ -1,21 +1,49 @@
 package com.example.a39722.imageloader.framework.Math;
 
+import android.graphics.Bitmap;
+
+import com.example.a39722.imageloader.framework.Cloneable.TempArray;
+
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 
 /**
  * Created by 39722 on 2017/1/5.
+ * 内存缓存图片的地方
  */
 @SuppressWarnings("rawtypes")
-public class CacheChain<T> implements Chain{
+/**
+ * T指的是储存的主要数据类型
+ *
+ * */
+public class BitmapCacheChain implements Chain{
+
+    private static BitmapCacheChain singleton;
+    LinkedHashMap map = null;
     CacheNode[] nodes;
     Pool<Node> pool;
     ArrayList nodeBuffer;
-    int maxCache;
-    int size;
-    public int getSize(){
+    long maxCache;
+    long size;
+    public long getSize(){
     	return size;
     }
-    public CacheChain(Pool<Node> pool,int maxCache){
+    /*public BitmapCacheChain(Pool<Node> pool,int maxCache){
+        this.maxCache = maxCache;
+        nodeBuffer = new ArrayList<>();
+        this.pool = pool;
+    }*/
+    private BitmapCacheChain(){
+    }
+
+    public static BitmapCacheChain getInstance(){
+        if(singleton==null){
+            singleton = new BitmapCacheChain();
+        }
+        return singleton;
+    }
+
+    public void init(Pool<Node> pool,long maxCache){
         this.maxCache = maxCache;
         nodeBuffer = new ArrayList<>();
         this.pool = pool;
@@ -28,11 +56,11 @@ public class CacheChain<T> implements Chain{
 
     @SuppressWarnings({ "unchecked" })
 	@Override
-    public void addNode(String key, Object value,int size) {
+    public void addNode(String key, Object value,long size) {
         synchronized (this){
             Node node = pool.newObject();
             ((CacheNode)node).key = key;
-            ((CacheNode)node).value = (T)value;
+            ((CacheNode)node).value = (Bitmap)value;
             ((CacheNode)node).size = size;
             if((this.size+size)<=maxCache){
                 this.size +=size;
@@ -69,7 +97,7 @@ public class CacheChain<T> implements Chain{
     }
 
     @Override
-    public void trim(int newSize) {
+    public void trim(long newSize) {
         int count = 0;
         int len = 0;
         if(nodes!=null&&nodes.length>0){
@@ -88,6 +116,10 @@ public class CacheChain<T> implements Chain{
             }
             CacheNode[] temp = new CacheNode[len-count];
             System.arraycopy(nodes,count,temp,0,len-count);
+            for(int i = 0;i<count;i++){
+                nodes[i].value=null;
+                pool.free(nodes[i]);
+            }
             nodes = new CacheNode[temp.length];
             System.arraycopy(temp, 0, nodes, 0, temp.length);
             System.out.println("完成修剪");
@@ -96,9 +128,10 @@ public class CacheChain<T> implements Chain{
 
     @SuppressWarnings({ "unchecked" })
 	public CacheNode[] getCacheNodes(){
+        CacheNode[] temp = null;
         synchronized (this){
             int len = nodeBuffer.size();
-            CacheNode[] temp = null;
+            temp = null;
             int originalLen = 0;
             String temPreKey = null;
             if(nodes!=null&&nodes.length>0){
@@ -109,10 +142,10 @@ public class CacheChain<T> implements Chain{
             }else{
                 temp = new CacheNode[len];
             }
-            ArrayList tempBuffer = new ArrayList();
-            tempBuffer.addAll(nodeBuffer);
-            for(int i = 0;i<len;i++){
-                /*Object node1 = nodeBuffer.get(i);
+            temp = setNodes(temp,nodeBuffer,temPreKey,originalLen);
+        }
+           /* for(int i = 0;i<len;i++){
+                *//*Object node1 = nodeBuffer.get(i);
                 Object node2 = nodeBuffer.get(i+1);
                 temp[originalLen+i] = (CacheNode)node1;
                 temp[originalLen+i].preKey = temPreKey;
@@ -120,16 +153,16 @@ public class CacheChain<T> implements Chain{
                 temp[originalLen+i+1] = (CacheNode)node2;
                 temp[originalLen+i+1].preKey = ((CacheNode)node1).getKey();
                 temp[originalLen+i+1].nextKey = null;
-                temPreKey = ((CacheNode)node1).getKey();*/
+                temPreKey = ((CacheNode)node1).getKey();*//*
+                //((CacheNode)nodeBuffer.get(i)).value = null;
                 pool.free((Node)nodeBuffer.get(i));
-            }
-            temp = setNodes(temp,tempBuffer,temPreKey,originalLen);
-            
+            }*/
             nodeBuffer.clear();
             nodes = new CacheNode[temp.length];
             System.arraycopy(temp, 0, nodes, 0, temp.length);
+            /*nodes = null;
+            nodes = temp.clone();*/
             return nodes;
-        }
     }
     
     @SuppressWarnings("unchecked")
@@ -139,16 +172,24 @@ public class CacheChain<T> implements Chain{
 			String temPreKey,
     		int originalLen){
     	int len = nodeBuffer.size();
-    	for(int i = 0;i<len-1;i++){
-    		Object node1 = nodeBuffer.get(i);
-            Object node2 = nodeBuffer.get(i+1);
-            temp[originalLen+i] = (CacheNode)node1;
-            temp[originalLen+i].preKey = temPreKey;
-            temp[originalLen+i].nextKey = ((CacheNode)node2).getKey();
-            temp[originalLen+i+1] = (CacheNode)node2;
-            temp[originalLen+i+1].preKey = ((CacheNode)node1).getKey();
-            temp[originalLen+i+1].nextKey = null;
-            temPreKey = ((CacheNode)node1).getKey();
+        if(len>1){
+            for(int i = 0;i<len-1;i++){
+                Object node1 = nodeBuffer.get(i);
+                Object node2 = nodeBuffer.get(i+1);
+                temp[originalLen+i] = (CacheNode)node1;
+                temp[originalLen+i].preKey = temPreKey;
+                temp[originalLen+i].nextKey = ((CacheNode)node2).getKey();
+                temp[originalLen+i+1] = (CacheNode)node2;
+                temp[originalLen+i+1].preKey = ((CacheNode)node1).getKey();
+                temp[originalLen+i+1].nextKey = null;
+                temPreKey = ((CacheNode)node1).getKey();
+            }
+        }else if(len==1){
+            Object node1 = nodeBuffer.get(0);
+            temp[originalLen] = (CacheNode)node1;
+            temp[originalLen].preKey = temPreKey;
+            temp[originalLen].nextKey = null;
+
     	}    	
     	return temp;
     }
@@ -194,17 +235,25 @@ public class CacheChain<T> implements Chain{
 
     @SuppressWarnings("unchecked")
 	@Override
-    public T findCache(String key) {
-        synchronized (this){
-            getCacheNodes();
-            int len = nodes.length;
-            for(int i = 0;i<len;i++){
-                if(key.equals(nodes[i].key)){
-                    pushToTop(i);
-                    return (T)nodes[len-1].value;
+    public Bitmap findCache(String key){
+        getCacheNodes();
+            if(nodes!=null){
+                int len = nodes.length;
+                for(int i = 0;i<len;i++){
+                    if(key.equals(nodes[i].key)){
+                        pushToTop(i);
+                        return (Bitmap)nodes[len-1].value;
+                    }
                 }
-            }
-        }
+            }/*else if(nodeBuffer.size()>0){
+                int len = nodeBuffer.size();
+                for(int i = 0;i<len;i++){
+                    if(key.equals(((CacheNode)nodeBuffer.get(i)).key)){
+                        return (Bitmap) ((CacheNode)nodeBuffer.get(i)).value;
+                    }
+                }
+                getCacheNodes();
+            }*/
         return null;
     }
 }

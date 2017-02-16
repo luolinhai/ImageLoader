@@ -8,7 +8,7 @@ public class CacheNode<T> implements Node {
     public String nextKey;
     public String key;
     public Object value;
-    public int size;
+    public long size;
     
 
 	public String getKey() {

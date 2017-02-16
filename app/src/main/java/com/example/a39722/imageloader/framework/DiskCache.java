@@ -9,5 +9,5 @@ import com.example.a39722.imageloader.framework.Impl.BitmapIO;
  */
 public interface DiskCache {
     public Bitmap getBitmap(int id);
-    public void cacheBitmap(BitmapIO files,String file,Bitmap bitmap);
+    public boolean cacheBitmap(BitmapIO files,String file,Bitmap bitmap);
 }

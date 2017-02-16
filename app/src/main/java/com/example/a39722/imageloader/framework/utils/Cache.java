@@ -1,5 +1,11 @@
 package com.example.a39722.imageloader.framework.utils;
 
+import android.content.Context;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+import android.os.Environment;
+
+import java.io.File;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
@@ -29,5 +35,26 @@ public class Cache {
             sb.append(hex);
         }
        return sb.toString();
+    }
+
+    public static int getAppVersion(Context context){
+        try{
+             PackageInfo info = context.getPackageManager().getPackageInfo(context.getPackageName(),0);
+            return info.versionCode;
+        }catch(PackageManager.NameNotFoundException e){
+                e.printStackTrace();
+        }
+        return 1;
+    }
+
+    public static File getDiskCacheDir(Context context,String uniqueName){
+        String cachePath;
+        if(Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())
+        ||!Environment.isExternalStorageRemovable()){
+            cachePath = context.getExternalCacheDir().getPath();
+        }else{
+            cachePath = context.getCacheDir().getPath();
+        }
+        return new File(cachePath + File.separator + uniqueName);
     }
 }
